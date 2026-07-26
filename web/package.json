@@ -1,0 +1,7 @@
+{
+  "name": "mock-interviewer-web",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Replace this with your real Next.js app (npx create-next-app@latest .) then npm run dev' && sleep infinity"
+  }
+}
