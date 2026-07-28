@@ -5,7 +5,7 @@ CREATE TABLE questions (
     topic              text NOT NULL,
     difficulty         text NOT NULL CHECK (difficulty IN ('easy', 'medium', 'hard')),
     ideal_answer_points jsonb NOT NULL DEFAULT '[]'::jsonb,
-    embedding          vector(1536),
+    embedding          vector(384),
     created_at         timestamptz NOT NULL DEFAULT now()
 );
 
