@@ -34,7 +34,7 @@ export default async function InterviewRoom({ params }: { params: Promise<{ id: 
       <header className="bg-gray-900 border-b border-gray-800 p-4 shadow-md flex justify-between items-center z-10">
         <div>
           <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-            Mock Interview
+            Interview with Jasmine
           </h1>
           <p className="text-xs text-gray-400">Role: {session.role_track}</p>
         </div>
@@ -55,6 +55,7 @@ export default async function InterviewRoom({ params }: { params: Promise<{ id: 
           initialTurns={turns} 
           initialQuestionId={currentQuestionId}
           status={session.status}
+          candidateName={session.candidate_name || null}
         />
       </div>
     </main>

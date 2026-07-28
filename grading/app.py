@@ -97,6 +97,11 @@ def grade():
     
     with psycopg.connect(DATABASE_URL) as conn:
         with conn.cursor() as cur:
+            # Fetch candidate name
+            cur.execute("SELECT candidate_name FROM interview_sessions WHERE id = %s", (session_id,))
+            session_row = cur.fetchone()
+            candidate_name = session_row[0] if session_row and session_row[0] else "the candidate"
+
             # Fetch the entire transcript for this session
             cur.execute("""
                 SELECT speaker, content 
@@ -111,9 +116,9 @@ def grade():
             
             transcript = "\n\n".join([f"{r[0].upper()}:\n{r[1]}" for r in rows])
             
-            prompt = f"""You are an expert technical interviewer evaluating a candidate's full interview performance.
+            prompt = f"""You are Jasmine, a friendly but rigorous technical interviewer. You just finished interviewing {candidate_name}.
 Review the transcript below and provide a final holistic grade across 4 dimensions: correctness, depth, communication, problem_solving.
-Score each dimension from 1 to 5. Also provide overall_feedback (a few paragraphs of constructive feedback identifying overarching patterns).
+Score each dimension from 1 to 5. Also provide overall_feedback (a few paragraphs of constructive feedback identifying overarching patterns, addressed directly to {candidate_name}).
 
 Output strictly in JSON format matching this schema:
 {{
@@ -130,13 +135,14 @@ TRANSCRIPT:
 {transcript}
 """
             completion = client.chat.completions.create(
-                model="llama-3.1-8b-instant", # fast and cheap model for JSON output
+                model="llama-3.1-8b-instant",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
                 response_format={"type": "json_object"}
             )
             
             result_json = completion.choices[0].message.content
+            print(f"[Grade] Raw Groq response for session {session_id}: {result_json}")
             result = json.loads(result_json)
             
             # Insert scorecard
