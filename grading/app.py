@@ -24,6 +24,94 @@ print("Model loaded successfully.")
 # Initialize Groq client
 client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
+TRACK_RUBRICS = {}
+DEFAULT_DIMENSIONS = ["correctness", "depth", "communication", "problem_solving"]
+
+def load_track_rubrics():
+    global TRACK_RUBRICS
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cur:
+                # We check if the table exists first (in case the migration hasn't run yet)
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'track_rubrics'
+                    );
+                """)
+                if cur.fetchone()[0]:
+                    cur.execute("SELECT role_track, round_type, dimension, weight, description FROM track_rubrics")
+                    rows = cur.fetchall()
+                    new_rubrics = {}
+                    for track, round_type, dim, weight, desc in rows:
+                        # Use empty string if round_type is None so we can reliably key by a tuple
+                        rt_key = round_type if round_type else ""
+                        key = (track, rt_key)
+                        if key not in new_rubrics:
+                            new_rubrics[key] = []
+                        new_rubrics[key].append({
+                            "dimension": dim,
+                            "weight": float(weight),
+                            "description": desc
+                        })
+                    TRACK_RUBRICS = new_rubrics
+                    print(f"Loaded rubrics for {len(TRACK_RUBRICS)} track configurations.")
+                else:
+                    print("Table track_rubrics does not exist yet. Using default dimensions.")
+    except Exception as e:
+        print(f"Error loading track rubrics: {e}")
+
+load_track_rubrics()
+
+@app.post("/admin/reload-rubrics")
+def reload_rubrics():
+    load_track_rubrics()
+    return jsonify({"status": "ok", "count": len(TRACK_RUBRICS)})
+
+@app.post("/admin/rubrics")
+def write_rubric():
+    """
+    Accepts:
+    {
+      "role_track": "coding_dsa",
+      "round_type": null,
+      "dimensions": [
+        {"dimension": "correctness", "weight": 0.35, "description": "..."},
+        ...
+      ]
+    }
+    """
+    data = request.json
+    role_track = data.get("role_track")
+    round_type = data.get("round_type")
+    dimensions = data.get("dimensions", [])
+    
+    if not role_track or not dimensions:
+        return jsonify({"error": "role_track and dimensions are required"}), 400
+        
+    # Validate weights sum to 1.0
+    total_weight = sum(d.get("weight", 0) for d in dimensions)
+    if abs(total_weight - 1.0) > 0.001:
+        return jsonify({
+            "error": f"Weights for ({role_track}, {round_type}) must sum to 1.0. Actual sum: {total_weight}"
+        }), 400
+        
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            # Upsert the dimensions
+            for d in dimensions:
+                # Using PostgreSQL ON CONFLICT requires a unique constraint/index.
+                # Assuming (role_track, round_type, dimension) is unique per the migration.
+                cur.execute("""
+                    INSERT INTO track_rubrics (role_track, round_type, dimension, weight, description)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (role_track, round_type, dimension) 
+                    DO UPDATE SET weight = EXCLUDED.weight, description = EXCLUDED.description
+                """, (role_track, round_type, d["dimension"], d["weight"], d.get("description", "")))
+                
+    load_track_rubrics()
+    return jsonify({"status": "ok", "message": f"Saved {len(dimensions)} dimensions for {role_track}"})
+
 @app.get("/health")
 def health():
     return {"status": "ok", "model_loaded": model is not None}
@@ -97,10 +185,12 @@ def grade():
     
     with psycopg.connect(DATABASE_URL) as conn:
         with conn.cursor() as cur:
-            # Fetch candidate name
-            cur.execute("SELECT candidate_name FROM interview_sessions WHERE id = %s", (session_id,))
+            # Fetch candidate name, track, and round type
+            cur.execute("SELECT candidate_name, role_track, round_type FROM interview_sessions WHERE id = %s", (session_id,))
             session_row = cur.fetchone()
             candidate_name = session_row[0] if session_row and session_row[0] else "the candidate"
+            role_track = session_row[1] if session_row else ""
+            round_type = session_row[2] if session_row and session_row[2] else ""
 
             # Fetch the entire transcript for this session
             cur.execute("""
@@ -116,17 +206,33 @@ def grade():
             
             transcript = "\n\n".join([f"{r[0].upper()}:\n{r[1]}" for r in rows])
             
+            # NOTE: rubric selection is session-level. A single interview_sessions.round_type 
+            # determines which rubric weights apply to the whole session's Scorecard, not per-question.
+            # If a session needs to mix round types, that requires per-turn rubric application instead.
+            
+            # Lookup specific dimensions for this track + round_type
+            key = (role_track, round_type)
+            # Fall back to base role track if specific round_type not configured
+            fallback_key = (role_track, "")
+            
+            dims_info = TRACK_RUBRICS.get(key) or TRACK_RUBRICS.get(fallback_key)
+            if dims_info:
+                dimensions = [d["dimension"] for d in dims_info]
+                dimensions_desc = ", ".join(f"{d['dimension']} ({d['description'] or 'no specific details'})" for d in dims_info)
+            else:
+                dimensions = DEFAULT_DIMENSIONS
+                dimensions_desc = ", ".join(DEFAULT_DIMENSIONS)
+                
+            json_schema_props = ",\n    ".join(f'"{d}": <int 1-5>' for d in dimensions)
+            
             prompt = f"""You are Jasmine, a friendly but rigorous technical interviewer. You just finished interviewing {candidate_name}.
-Review the transcript below and provide a final holistic grade across 4 dimensions: correctness, depth, communication, problem_solving.
+Review the transcript below and provide a final holistic grade across {len(dimensions)} dimensions: {dimensions_desc}.
 Score each dimension from 1 to 5. Also provide overall_feedback (a few paragraphs of constructive feedback identifying overarching patterns, addressed directly to {candidate_name}).
 
 Output strictly in JSON format matching this schema:
 {{
   "rubric_scores": {{
-    "correctness": <int 1-5>,
-    "depth": <int 1-5>,
-    "communication": <int 1-5>,
-    "problem_solving": <int 1-5>
+    {json_schema_props}
   }},
   "overall_feedback": "<string>"
 }}
