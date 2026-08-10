@@ -40,8 +40,19 @@ export default function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [isListening, setIsListening] = useState(false);
+  const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
   const finalTranscriptRef = useRef("");
+  const autoSubmitTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const clearAutoSubmit = useCallback(() => {
+    if (autoSubmitTimerRef.current) {
+      clearTimeout(autoSubmitTimerRef.current);
+      autoSubmitTimerRef.current = null;
+    }
+    setIsAutoSubmitting(false);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -73,10 +84,33 @@ export default function ChatInterface({
   const speakText = useCallback((text: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
+    
+    // TTS always wins: stop recognition immediately to prevent echo.
+    // (Barge-in/interrupt is out of scope for Web Speech API and deferred to the real WebRTC voice pipeline)
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (e) {}
+    }
+    setIsListening(false);
+    clearAutoSubmit();
+    setIsSpeaking(true);
+
     const cleanText = text.replace(/\*/g, "");
     const utterance = new SpeechSynthesisUtterance(cleanText);
+    
+    const handleSpeakEnd = () => {
+      // 400ms buffer to allow speaker/mic echo and audio tail-off to dissipate
+      setTimeout(() => {
+        setIsSpeaking(false);
+      }, 400);
+    };
+
+    utterance.onend = handleSpeakEnd;
+    utterance.onerror = handleSpeakEnd;
+
     window.speechSynthesis.speak(utterance);
-  }, []);
+  }, [clearAutoSubmit]);
 
   // Centralized TTS trigger for initial greeting (handles browser autoplay policies)
   useEffect(() => {
@@ -121,29 +155,58 @@ export default function ChatInterface({
         recognition.interimResults = true;
         
         recognition.onresult = (event: any) => {
+          clearAutoSubmit();
+          
           let interimTranscript = "";
+          let isFinalJustHappened = false;
+          
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
               finalTranscriptRef.current += event.results[i][0].transcript + " ";
+              isFinalJustHappened = true;
             } else {
               interimTranscript += event.results[i][0].transcript;
             }
           }
-          setInput(finalTranscriptRef.current + interimTranscript);
+          
+          const newInput = finalTranscriptRef.current + interimTranscript;
+          setInput(newInput);
+          
+          // Grace period for auto-submit if the speech has settled on a final phrase
+          if (isFinalJustHappened && !interimTranscript && newInput.trim()) {
+            setIsAutoSubmitting(true);
+            autoSubmitTimerRef.current = setTimeout(() => {
+              setIsAutoSubmitting(false);
+              // By the time this runs, we want to submit whatever is fully transcribed.
+              // We dispatch a custom event or call a function, but since handleSubmit
+              // might have stale state if used directly in this closure, we will
+              // trigger a programmatic form submit using a ref or just call handleSubmit
+              // with the final transcript string.
+              triggerAutoSubmit(finalTranscriptRef.current);
+            }, 1500);
+          }
         };
         
-        recognition.onend = () => setIsListening(false);
-        recognition.onerror = () => setIsListening(false);
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+        recognition.onerror = () => {
+          clearAutoSubmit();
+          setIsListening(false);
+        };
         recognitionRef.current = recognition;
       }
     }
     
     return () => {
-      window.speechSynthesis?.cancel();
-    };
-  }, []);
+          clearAutoSubmit();
+          window.speechSynthesis?.cancel();
+        };
+      }, [clearAutoSubmit]);
 
   const toggleListening = () => {
+    if (isSpeaking) return; // Guard against starting while TTS is playing
+    clearAutoSubmit();
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
@@ -156,16 +219,23 @@ export default function ChatInterface({
     }
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  // A stable ref so the timeout closure can call it without stale closures
+  const triggerAutoSubmit = (message: string) => {
+    handleSubmit(undefined, message);
+  };
+
+  const handleSubmit = async (e?: React.FormEvent, explicitMessage?: string) => {
     if (e) e.preventDefault();
-    if (!input.trim() || isLoading || status === 'completed') return;
+    clearAutoSubmit();
+    
+    const userMessage = (explicitMessage ?? input).trim();
+    if (!userMessage || isLoading || status === 'completed') return;
 
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
     }
 
-    const userMessage = input.trim();
     setInput("");
     finalTranscriptRef.current = "";
     setIsLoading(true);
@@ -313,13 +383,15 @@ export default function ChatInterface({
             <button
               type="button"
               onClick={toggleListening}
-              disabled={isLoading}
+              disabled={isLoading || isSpeaking}
               className={`p-3 rounded-xl transition-all flex-shrink-0 ${
                 isListening 
                   ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
-                  : 'bg-gray-700 hover:bg-gray-600'
+                  : (isSpeaking || isLoading)
+                    ? 'bg-gray-800 opacity-50 cursor-not-allowed'
+                    : 'bg-gray-700 hover:bg-gray-600'
               }`}
-              title="Toggle Microphone"
+              title={isSpeaking ? "Jasmine is speaking..." : "Toggle Microphone"}
             >
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -328,8 +400,22 @@ export default function ChatInterface({
             <textarea
               value={input}
               onChange={(e) => {
+                 clearAutoSubmit();
+                 if (isListening) {
+                   recognitionRef.current?.stop();
+                   setIsListening(false);
+                 }
                  setInput(e.target.value);
                  finalTranscriptRef.current = e.target.value;
+              }}
+              onFocus={() => {
+                if (isAutoSubmitting) {
+                  clearAutoSubmit();
+                  if (isListening) {
+                    recognitionRef.current?.stop();
+                    setIsListening(false);
+                  }
+                }
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -340,14 +426,18 @@ export default function ChatInterface({
               placeholder={isListening ? "Listening..." : "Type your answer... (Press Enter to submit)"}
               className={`flex-1 bg-gray-800 border ${isListening ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-colors`}
               rows={2}
-              disabled={isLoading || isListening}
+              disabled={isLoading}
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-6 py-3 rounded-xl font-medium transition-colors h-[50px] flex-shrink-0"
+              className={`px-6 py-3 rounded-xl font-medium transition-colors h-[50px] flex-shrink-0 ${
+                isAutoSubmitting
+                  ? 'bg-amber-500 hover:bg-amber-400 animate-pulse text-white'
+                  : 'bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white'
+              }`}
             >
-              {isLoading ? '...' : 'Send'}
+              {isLoading ? '...' : isAutoSubmitting ? 'Sending...' : 'Send'}
             </button>
           </form>
         )}
