@@ -40,12 +40,7 @@ export async function createSession(formData: FormData) {
     );
     sessionId = res.rows[0].id;
 
-    // Insert Jasmine's greeting as the first turn
-    const greeting = "Hi there! I'm Jasmine, and I'll be your interviewer today. Before we dive in, could you tell me your name and how you're doing?";
-    await client.query(
-      "INSERT INTO turns (session_id, sequence_number, speaker, content) VALUES ($1, $2, $3, $4)",
-      [sessionId, 1, "interviewer", greeting]
-    );
+
   } catch (error) {
     console.error("Error creating session:", error);
     throw error;
@@ -55,5 +50,26 @@ export async function createSession(formData: FormData) {
 
   if (sessionId) {
     redirect(`/interview/${sessionId}`);
+  }
+}
+
+export async function startGreeting(sessionId: string) {
+  const client = await pool.connect();
+  try {
+    const greeting = "Hi there! I'm Jasmine, and I'll be your interviewer today. Before we dive in, could you tell me your name and how you're doing?";
+    // Only insert if it doesn't already exist (e.g. from page refresh)
+    const existing = await client.query("SELECT id FROM turns WHERE session_id = $1 AND sequence_number = 1", [sessionId]);
+    if (existing.rows.length === 0) {
+      await client.query(
+        "INSERT INTO turns (session_id, sequence_number, speaker, content) VALUES ($1, $2, $3, $4)",
+        [sessionId, 1, "interviewer", greeting]
+      );
+    }
+    return greeting;
+  } catch (error) {
+    console.error("Error starting greeting:", error);
+    throw error;
+  } finally {
+    client.release();
   }
 }

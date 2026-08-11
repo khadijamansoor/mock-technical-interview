@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { startGreeting } from "@/app/actions";
 
 declare global {
   interface Window {
@@ -141,39 +142,12 @@ export default function ChatInterface({
     window.speechSynthesis.speak(utterance);
   }, [clearAutoSubmit]);
 
-  // Centralized TTS trigger for initial greeting (handles browser autoplay policies)
   useEffect(() => {
-    const greetingTurn = initialTurns.find(t => t.speaker === 'interviewer');
-    if (!greetingTurn || !greetingTurn.content || hasSpokenGreetingRef.current) return;
-
-    const trySpeakGreeting = () => {
-      if (hasSpokenGreetingRef.current) return;
-      hasSpokenGreetingRef.current = true;
-      speakText(greetingTurn.content);
-    };
-
-    trySpeakGreeting();
-
-    // Fallback: If autoplay policy blocked TTS on page load, trigger on first user interaction
-    const handleFirstInteraction = () => {
-      if (window.speechSynthesis && !window.speechSynthesis.speaking) {
-        speakText(greetingTurn.content);
-      }
-      window.removeEventListener('click', handleFirstInteraction);
-      window.removeEventListener('keydown', handleFirstInteraction);
-      window.removeEventListener('touchstart', handleFirstInteraction);
-    };
-
-    window.addEventListener('click', handleFirstInteraction);
-    window.addEventListener('keydown', handleFirstInteraction);
-    window.addEventListener('touchstart', handleFirstInteraction);
-
-    return () => {
-      window.removeEventListener('click', handleFirstInteraction);
-      window.removeEventListener('keydown', handleFirstInteraction);
-      window.removeEventListener('touchstart', handleFirstInteraction);
-    };
-  }, [initialTurns, speakText, hasCameraConsent]);
+    if (hasCameraConsent && localVideoRef.current && streamRef.current) {
+      console.log("Binding MediaStream to <video> element:", streamRef.current.id);
+      localVideoRef.current.srcObject = streamRef.current;
+    }
+  }, [hasCameraConsent]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -262,12 +236,23 @@ export default function ChatInterface({
 
   const requestMediaConsent = async () => {
     try {
+      console.log("Requesting camera/mic permissions...");
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      console.log("MediaStream acquired successfully:", stream.id);
       streamRef.current = stream;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
       setHasCameraConsent(true);
+      
+      // Trigger greeting creation ONLY after consent, if it's a new session
+      if (turns.length === 0) {
+        try {
+          const greetingText = await startGreeting(sessionId);
+          setTurns([{ speaker: 'interviewer', content: greetingText }]);
+          hasSpokenGreetingRef.current = true;
+          speakText(greetingText);
+        } catch (e) {
+          console.error("Failed to start greeting:", e);
+        }
+      }
     } catch (err) {
       console.error("Failed to get media access:", err);
       alert("Camera and microphone access is required for the interview setup.");

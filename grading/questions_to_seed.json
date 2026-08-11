@@ -1,0 +1,422 @@
+[
+  {
+    "role_track": "coding_dsa",
+    "round_type": null,
+    "topic": "Arrays",
+    "difficulty": "easy",
+    "text": "Given an array of integers, find two numbers that add up to a specific target and return their indices.",
+    "ideal_answer_points": [
+      "Recognizes the brute-force O(n^2) nested-loop approach first, then improves on it",
+      "Uses a hash map to store seen values and their indices, checking for the complement in O(1) per element",
+      "Achieves O(n) time, O(n) space with a single pass",
+      "Clarifies whether duplicate values or multiple valid pairs need special handling",
+      "Discusses the tradeoff versus sorting + two pointers (O(n log n) time, O(1) extra space, but loses original indices)"
+    ]
+  },
+  {
+    "role_track": "coding_dsa",
+    "round_type": null,
+    "topic": "Strings",
+    "difficulty": "medium",
+    "text": "Given a string, find the length of the longest substring without repeating characters.",
+    "ideal_answer_points": [
+      "Identifies this as a sliding window problem, not brute force over all substrings",
+      "Maintains a window with a hash set or hash map of characters currently in the window",
+      "Expands the right pointer and shrinks the left pointer when a duplicate is found",
+      "Achieves O(n) time by ensuring each character is visited a bounded number of times",
+      "Correctly handles edge cases: empty string, all-unique string, all-same-character string"
+    ]
+  },
+  {
+    "role_track": "coding_dsa",
+    "round_type": null,
+    "topic": "Linked Lists",
+    "difficulty": "medium",
+    "text": "Reverse a singly linked list, both iteratively and recursively.",
+    "ideal_answer_points": [
+      "Iterative approach: maintains prev, current, and next pointers, reversing links one node at a time",
+      "Correctly re-points current.next to prev before advancing all three pointers",
+      "Recursive approach: recurses to the end of the list, then reverses links on the way back up the call stack",
+      "States time complexity O(n) for both, space complexity O(1) iterative vs O(n) recursive due to call stack",
+      "Can explain the tradeoff: recursive is more elegant but risks stack overflow on very long lists"
+    ]
+  },
+  {
+    "role_track": "coding_dsa",
+    "round_type": null,
+    "topic": "Linked Lists",
+    "difficulty": "medium",
+    "text": "Given a linked list, determine if it contains a cycle, and if so, find the node where the cycle begins.",
+    "ideal_answer_points": [
+      "Uses Floyd's Tortoise and Hare technique: two pointers moving at different speeds",
+      "Explains why the pointers must meet inside the cycle if one exists",
+      "For finding the cycle's start: after detecting a meeting point, resets one pointer to the head and advances both at the same speed until they meet again",
+      "States O(n) time, O(1) space, and can contrast with the O(n) space HashSet alternative",
+      "Handles edge cases: empty list, single node, no cycle"
+    ]
+  },
+  {
+    "role_track": "coding_dsa",
+    "round_type": null,
+    "topic": "Trees",
+    "difficulty": "medium",
+    "text": "Given a binary tree, determine if it is a valid binary search tree (BST).",
+    "ideal_answer_points": [
+      "Recognizes that checking only immediate parent-child relationships is insufficient",
+      "Uses a recursive approach that tracks a valid (min, max) range for each node as it descends",
+      "Alternative: in-order traversal should produce a strictly increasing sequence for a valid BST",
+      "Correctly handles duplicate values and defines whether they're allowed",
+      "States O(n) time, O(h) space where h is tree height (call stack)"
+    ]
+  },
+  {
+    "role_track": "coding_dsa",
+    "round_type": null,
+    "topic": "Graphs",
+    "difficulty": "medium",
+    "text": "Given a 2D grid of '1's (land) and '0's (water), count the number of islands.",
+    "ideal_answer_points": [
+      "Recognizes this as a connected-components problem on an implicit graph",
+      "Uses DFS or BFS from each unvisited land cell, marking connected land cells as visited",
+      "Correctly handles 4-directional (or specifies 8-directional) adjacency",
+      "Avoids revisiting cells, either via a visited set or by mutating the grid in place",
+      "States O(rows * cols) time and space complexity"
+    ]
+  },
+  {
+    "role_track": "coding_dsa",
+    "round_type": null,
+    "topic": "Dynamic Programming",
+    "difficulty": "hard",
+    "text": "Given an array of integers, find the length of the longest increasing subsequence.",
+    "ideal_answer_points": [
+      "Starts from the O(n^2) DP formulation: dp[i] = longest subsequence ending at index i",
+      "Correctly defines the recurrence: dp[i] = max(dp[j] + 1) for all j < i where nums[j] < nums[i]",
+      "Can improve to O(n log n) using patience sorting with binary search over a 'tails' array",
+      "Explains why the O(n log n) tails array doesn't directly represent the actual subsequence, only its length",
+      "Handles edge cases: empty array, strictly decreasing array, all-equal elements"
+    ]
+  },
+  {
+    "role_track": "coding_dsa",
+    "round_type": null,
+    "topic": "Stacks and Queues",
+    "difficulty": "easy",
+    "text": "Implement a queue using two stacks.",
+    "ideal_answer_points": [
+      "Uses one stack for enqueue operations, one for dequeue operations",
+      "On dequeue, if the 'dequeue stack' is empty, pops everything from the 'enqueue stack' and pushes it onto the 'dequeue stack' to reverse order",
+      "Explains amortized O(1) time per operation, even though a single dequeue can be O(n) in the worst case",
+      "Correctly handles the empty-queue edge case",
+      "Can discuss the reverse problem (stack using two queues) as a related follow-up"
+    ]
+  },
+  {
+    "role_track": "coding_dsa",
+    "round_type": null,
+    "topic": "Hashing",
+    "difficulty": "medium",
+    "text": "Given an array of strings, group the anagrams together.",
+    "ideal_answer_points": [
+      "Identifies that anagrams share a canonical form when sorted or when represented as a character-count signature",
+      "Uses a hash map keyed by that canonical form, appending matching strings to the same bucket",
+      "Discusses the tradeoff: sorting each string (O(k log k) per string) vs. a character-count key (O(k) per string)",
+      "States overall time complexity in terms of n strings of average length k",
+      "Handles edge cases: empty strings, single-character strings"
+    ]
+  },
+  {
+    "role_track": "coding_dsa",
+    "round_type": null,
+    "topic": "Recursion and Backtracking",
+    "difficulty": "hard",
+    "text": "Given a set of distinct integers, return all possible subsets (the power set).",
+    "ideal_answer_points": [
+      "Recognizes there are 2^n subsets and frames the approach around that",
+      "Uses backtracking: at each element, recursively explores both including and excluding it",
+      "Alternative: iterative bit-manipulation approach, treating each subset as a binary mask over n elements",
+      "Correctly avoids duplicate subsets when the input may contain duplicate values (sorts first, skips repeated choices at the same recursion depth)",
+      "States O(2^n) time and space, since all subsets must be generated and stored"
+    ]
+  },
+  {
+    "role_track": "system_design",
+    "round_type": null,
+    "topic": "URL Shortener",
+    "difficulty": "medium",
+    "text": "Design a URL shortening service like bit.ly.",
+    "ideal_answer_points": [
+      "Clarifies requirements: expected read/write ratio, custom aliases, expiration, analytics needs",
+      "Proposes a short-code generation strategy (base62 encoding of an auto-incrementing ID, or a hash with collision handling) and explains the tradeoff chosen",
+      "Designs the core schema: short_code, long_url, created_at, expiry, owner",
+      "Addresses read-heavy traffic with caching (e.g., Redis) in front of the database for hot redirects",
+      "Discusses horizontal scaling of the redirect service and database sharding/replication as traffic grows"
+    ]
+  },
+  {
+    "role_track": "system_design",
+    "round_type": null,
+    "topic": "Rate Limiter",
+    "difficulty": "medium",
+    "text": "Design a rate limiter that can be applied to an API to prevent abuse.",
+    "ideal_answer_points": [
+      "Compares algorithm choices: fixed window, sliding window log, sliding window counter, token bucket — and picks one with justification",
+      "Explains why token bucket is often preferred for allowing controlled bursts while enforcing an average rate",
+      "Discusses where state lives: in-memory per-instance (fast but inconsistent across a fleet) vs. centralized store like Redis (consistent but adds latency/dependency)",
+      "Addresses what happens when the limit is exceeded (429 response, retry-after header)",
+      "Considers rate-limiting granularity: per-user, per-IP, per-API-key, and how that changes the design"
+    ]
+  },
+  {
+    "role_track": "system_design",
+    "round_type": null,
+    "topic": "Chat Application",
+    "difficulty": "hard",
+    "text": "Design a real-time one-on-one and group messaging system like WhatsApp.",
+    "ideal_answer_points": [
+      "Chooses a persistent connection strategy (WebSockets or long polling) for real-time delivery and justifies it",
+      "Designs message storage and ordering, including how to handle out-of-order delivery across devices",
+      "Addresses delivery guarantees: at-least-once vs. exactly-once, and how read receipts/delivery status are tracked",
+      "Discusses fan-out strategy for group chats as group size grows",
+      "Covers offline delivery: message queuing for disconnected users and push notification integration"
+    ]
+  },
+  {
+    "role_track": "system_design",
+    "round_type": null,
+    "topic": "News Feed",
+    "difficulty": "hard",
+    "text": "Design a social media news feed system like Twitter/X or Instagram's home feed.",
+    "ideal_answer_points": [
+      "Compares fan-out-on-write (precompute feeds when a post is made) vs. fan-out-on-read (compute feed at request time) and discusses when each wins",
+      "Addresses the 'celebrity problem' — fan-out-on-write breaking down for accounts with millions of followers, and a hybrid approach",
+      "Designs ranking/relevance beyond pure chronological order, at a high level",
+      "Discusses caching strategy for hot feeds and pagination for infinite scroll",
+      "Addresses data storage choice and justifies it against the read/write pattern"
+    ]
+  },
+  {
+    "role_track": "system_design",
+    "round_type": null,
+    "topic": "AI/LLM Infrastructure",
+    "difficulty": "hard",
+    "text": "Design a backend system that serves an LLM-powered chatbot to millions of users, handling both latency and cost constraints.",
+    "ideal_answer_points": [
+      "Addresses request queuing and batching strategy for GPU inference efficiency without unacceptable latency",
+      "Discusses streaming responses (token-by-token) to the client rather than waiting for full generation",
+      "Considers caching strategies for repeated or similar queries, including semantic/embedding-based cache lookups",
+      "Addresses cost/latency tradeoffs between model size tiers and when to route a query to a smaller vs. larger model",
+      "Discusses rate limiting, abuse prevention, and graceful degradation under load"
+    ]
+  },
+  {
+    "role_track": "system_design",
+    "round_type": null,
+    "topic": "File Storage",
+    "difficulty": "medium",
+    "text": "Design a file storage and sharing service like Dropbox or Google Drive.",
+    "ideal_answer_points": [
+      "Separates metadata storage (file names, folder structure, permissions) from actual file/blob storage",
+      "Discusses chunking large files for upload/download efficiency and resumable transfers",
+      "Addresses synchronization: how clients detect changes and reconcile conflicts across devices",
+      "Covers deduplication strategy (content hashing to avoid storing identical files twice)",
+      "Discusses versioning and how storage cost is managed as file history grows"
+    ]
+  },
+  {
+    "role_track": "system_design",
+    "round_type": null,
+    "topic": "Search Autocomplete",
+    "difficulty": "medium",
+    "text": "Design a search-as-you-type autocomplete system like a search engine's query suggestions.",
+    "ideal_answer_points": [
+      "Proposes a trie (prefix tree) as the core data structure for efficient prefix lookups",
+      "Discusses how to rank suggestions (frequency-based, personalization, recency) rather than just returning all matches",
+      "Addresses how the trie is kept up to date as new queries come in, without blocking read traffic",
+      "Covers latency requirements given this is on the critical typing path, and how caching top queries helps",
+      "Discusses sharding the trie/index if the dataset grows too large for a single machine"
+    ]
+  },
+  {
+    "role_track": "system_design",
+    "round_type": null,
+    "topic": "Video Streaming / CDN",
+    "difficulty": "hard",
+    "text": "Design a video streaming platform like YouTube, focusing on upload processing and playback delivery.",
+    "ideal_answer_points": [
+      "Discusses transcoding uploaded video into multiple resolutions/bitrates for adaptive streaming",
+      "Explains adaptive bitrate streaming (e.g., HLS/DASH) and why it matters for varying network conditions",
+      "Addresses CDN usage for serving video close to users and reducing origin server load",
+      "Covers metadata storage (video info, view counts) separately from the actual video files in object storage",
+      "Discusses handling of upload processing asynchronously via a job queue rather than blocking the upload request"
+    ]
+  },
+  {
+    "role_track": "system_design",
+    "round_type": null,
+    "topic": "Notification System",
+    "difficulty": "medium",
+    "text": "Design a notification system that can send push, email, and SMS notifications at scale.",
+    "ideal_answer_points": [
+      "Proposes a message queue-based architecture decoupling notification triggers from delivery",
+      "Discusses per-channel worker services (push/email/SMS) consuming from the queue independently",
+      "Addresses user preference management (opt-in/opt-out per channel) and how it's enforced before sending",
+      "Covers retry logic and dead-letter handling for failed deliveries",
+      "Discusses rate limiting per user to avoid notification spam and deduplication of near-simultaneous triggers"
+    ]
+  },
+  {
+    "role_track": "system_design",
+    "round_type": null,
+    "topic": "Distributed Cache",
+    "difficulty": "hard",
+    "text": "Design a distributed caching system like Redis, covering how it scales across multiple machines.",
+    "ideal_answer_points": [
+      "Discusses consistent hashing for distributing keys across cache nodes and minimizing reshuffling when nodes are added/removed",
+      "Addresses cache eviction policies (LRU, LFU) and when each is appropriate",
+      "Covers replication strategy for fault tolerance and read scaling",
+      "Discusses cache invalidation strategies and the tradeoffs between TTL-based and explicit invalidation",
+      "Addresses the thundering herd problem when a hot key expires and how to mitigate it"
+    ]
+  },
+  {
+    "role_track": "behavioral",
+    "round_type": null,
+    "topic": "Leadership",
+    "difficulty": "medium",
+    "text": "Tell me about a time you led a team through a difficult project.",
+    "ideal_answer_points": [
+      "Uses STAR structure: sets clear situation/task context before describing actions",
+      "Focuses on their own individual actions and decisions, not just what 'the team' did",
+      "Describes concrete steps taken to lead — delegation, unblocking others, communication cadence",
+      "Ends with a specific, ideally quantifiable result",
+      "Reflects on what they'd do differently, showing self-awareness rather than a purely self-congratulatory story"
+    ]
+  },
+  {
+    "role_track": "behavioral",
+    "round_type": null,
+    "topic": "Conflict Resolution",
+    "difficulty": "medium",
+    "text": "Describe a time you disagreed with a manager or teammate. How did you handle it?",
+    "ideal_answer_points": [
+      "Describes the disagreement factually and respectfully, without disparaging the other person",
+      "Explains their reasoning for their position and how they made their case",
+      "Shows they listened to the other perspective, not just pushed their own view",
+      "Describes the resolution and their own role in reaching it",
+      "Reflects on the outcome and what it taught them about handling disagreement professionally"
+    ]
+  },
+  {
+    "role_track": "behavioral",
+    "round_type": null,
+    "topic": "Problem-Solving Under Constraints",
+    "difficulty": "medium",
+    "text": "Tell me about a time you had to solve a problem with limited resources or information.",
+    "ideal_answer_points": [
+      "Clearly describes the constraint (time, budget, information, tooling) that made the problem hard",
+      "Explains the approach taken to work within or around the constraint",
+      "Shows resourcefulness and independent judgment rather than waiting for someone else to solve it",
+      "Describes the concrete outcome",
+      "Connects the experience to a broader lesson about working under constraints"
+    ]
+  },
+  {
+    "role_track": "behavioral",
+    "round_type": null,
+    "topic": "Handling Mistakes",
+    "difficulty": "medium",
+    "text": "Describe a mistake you made at work and how you handled it.",
+    "ideal_answer_points": [
+      "Takes clear ownership of the mistake without deflecting blame",
+      "Describes concrete corrective action taken once the mistake was identified",
+      "Explains what changed afterward (process, habit, checklist) to prevent recurrence",
+      "Avoids picking a mistake that's either trivial or reflects poorly on core job competence",
+      "Shows genuine self-awareness and growth, not a rehearsed-sounding 'perfectionism' answer"
+    ]
+  },
+  {
+    "role_track": "behavioral",
+    "round_type": null,
+    "topic": "Deadline Pressure",
+    "difficulty": "medium",
+    "text": "Tell me about a time you had to meet a tight or seemingly impossible deadline.",
+    "ideal_answer_points": [
+      "Describes how they assessed and prioritized what was actually essential under time pressure",
+      "Explains specific tradeoffs made (scope cut, help requested, process changed) and the reasoning behind them",
+      "Shows clear communication with stakeholders about risk or status during the crunch",
+      "States the outcome concretely, including whether the deadline was actually met",
+      "Reflects on what they'd change about their planning to avoid similar crunches"
+    ]
+  },
+  {
+    "role_track": "behavioral",
+    "round_type": null,
+    "topic": "Working with Difficult Colleagues",
+    "difficulty": "medium",
+    "text": "Describe a time you had to work closely with a colleague you found difficult.",
+    "ideal_answer_points": [
+      "Describes the difficulty specifically and professionally, avoiding personal attacks or vague complaints",
+      "Focuses on their own adaptive behavior — how they adjusted their communication or approach",
+      "Shows empathy or attempt to understand the other person's perspective/constraints",
+      "Describes a concrete resolution or working arrangement that improved the collaboration",
+      "Avoids framing the story as 'I was right and they were wrong' without nuance"
+    ]
+  },
+  {
+    "role_track": "behavioral",
+    "round_type": null,
+    "topic": "Ambiguity",
+    "difficulty": "hard",
+    "text": "Tell me about a time you had to make progress on something with unclear or ambiguous requirements.",
+    "ideal_answer_points": [
+      "Describes how they sought clarity (asking questions, making reasonable assumptions) rather than freezing",
+      "Explains how they decided what to build/do despite the ambiguity, and how they validated the direction",
+      "Shows comfort with iterating and adjusting course as more information became available",
+      "States a concrete outcome, including how the ambiguity was ultimately resolved",
+      "Reflects on how they'd approach similar ambiguity differently in hindsight"
+    ]
+  },
+  {
+    "role_track": "behavioral",
+    "round_type": null,
+    "topic": "Prioritization",
+    "difficulty": "medium",
+    "text": "Describe a time you had to juggle multiple competing priorities. How did you decide what to focus on?",
+    "ideal_answer_points": [
+      "Describes the specific competing demands clearly, not just 'I was busy'",
+      "Explains the criteria used to prioritize (impact, urgency, stakeholder needs) rather than an arbitrary choice",
+      "Shows how they communicated tradeoffs to affected stakeholders rather than silently dropping work",
+      "States the concrete outcome of the prioritization decision",
+      "Reflects on whether the prioritization held up in hindsight"
+    ]
+  },
+  {
+    "role_track": "behavioral",
+    "round_type": null,
+    "topic": "Receiving Feedback",
+    "difficulty": "medium",
+    "text": "Describe a time you received critical feedback you initially disagreed with. What did you do?",
+    "ideal_answer_points": [
+      "Describes the feedback and their initial reaction honestly, without downplaying the disagreement",
+      "Shows they took time to genuinely consider the feedback rather than dismissing it outright",
+      "Explains what they did next — sought more context, tested the feedback, adjusted behavior",
+      "States the eventual outcome, including whether their view changed and why",
+      "Demonstrates emotional maturity rather than defensiveness in how the story is told"
+    ]
+  },
+  {
+    "role_track": "behavioral",
+    "round_type": null,
+    "topic": "Going Beyond Scope",
+    "difficulty": "easy",
+    "text": "Tell me about a time you went above and beyond what was expected of you.",
+    "ideal_answer_points": [
+      "Describes a genuinely specific instance, not a vague generalization about work ethic",
+      "Clarifies what the baseline expectation was, so the 'above and beyond' part is clear by contrast",
+      "Explains the motivation — why they chose to go further, not just that they did",
+      "States a concrete, ideally measurable impact of the extra effort",
+      "Avoids sounding self-congratulatory; frames it as judgment and initiative, not just extra hours"
+    ]
+  }
+]
