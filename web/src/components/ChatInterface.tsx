@@ -143,11 +143,11 @@ export default function ChatInterface({
   }, [clearAutoSubmit]);
 
   useEffect(() => {
-    if (hasCameraConsent && localVideoRef.current && streamRef.current) {
+    if (hasCameraConsent && isCameraEnabled && localVideoRef.current && streamRef.current) {
       console.log("Binding MediaStream to <video> element:", streamRef.current.id);
       localVideoRef.current.srcObject = streamRef.current;
     }
-  }, [hasCameraConsent]);
+  }, [hasCameraConsent, isCameraEnabled]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -211,6 +211,15 @@ export default function ChatInterface({
   const toggleListening = () => {
     if (isSpeaking) return; // Guard against starting while TTS is playing
     clearAutoSubmit();
+    
+    // Toggle the actual MediaStream audio track (for future WebRTC compatibility)
+    if (streamRef.current) {
+      const audioTrack = streamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !isListening;
+      }
+    }
+
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
