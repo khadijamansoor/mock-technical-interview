@@ -1,3 +1,7 @@
 flask==3.0.3
 psycopg[binary]==3.2.1
 pgvector==0.3.2
+pymupdf
+python-docx
+supabase
+python-dotenv

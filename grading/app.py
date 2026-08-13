@@ -268,3 +268,95 @@ TRANSCRIPT:
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+
+@app.post("/parse-document")
+def parse_document():
+    """
+    Accepts:
+    {
+      "type": "resume" | "job_description",
+      "id": "uuid"
+    }
+    """
+    data = request.json
+    doc_type = data.get("type")
+    doc_id = data.get("id")
+
+    if doc_type not in ["resume", "job_description"] or not doc_id:
+        return jsonify({"error": "Invalid type or id"}), 400
+
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cur:
+                if doc_type == "resume":
+                    cur.execute("SELECT file_path, file_type FROM resumes WHERE id = %s", (doc_id,))
+                    row = cur.fetchone()
+                    if not row:
+                        return jsonify({"error": "Resume not found"}), 404
+                    
+                    file_path, file_type = row
+                    
+                    supabase_url = os.getenv("SUPABASE_URL")
+                    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+                    
+                    if not supabase_url or not supabase_key:
+                        return jsonify({"error": "Supabase credentials missing"}), 500
+                        
+                    from supabase import create_client, Client
+                    supabase: Client = create_client(supabase_url, supabase_key)
+                    
+                    # Download file
+                    res = supabase.storage.from_("resumes").download(file_path)
+                    
+                    extracted_text = ""
+                    if file_type == "pdf":
+                        import fitz
+                        doc = fitz.open(stream=res, filetype="pdf")
+                        for page in doc:
+                            extracted_text += page.get_text() + "\n"
+                    elif file_type == "docx":
+                        import docx
+                        import io
+                        doc = docx.Document(io.BytesIO(res))
+                        for para in doc.paragraphs:
+                            extracted_text += para.text + "\n"
+                    else:
+                        return jsonify({"error": "Unsupported file type"}), 400
+                        
+                    # Strip excessive whitespace
+                    import re
+                    extracted_text = re.sub(r'\n{3,}', '\n\n', extracted_text).strip()
+                    
+                    # Embed (truncate to 3000 chars)
+                    embedding = model.encode(extracted_text[:3000]).tolist()
+                    
+                    cur.execute("""
+                        UPDATE resumes 
+                        SET raw_text = %s, embedding = %s, parsed_at = now()
+                        WHERE id = %s
+                    """, (extracted_text, embedding, doc_id))
+                    
+                elif doc_type == "job_description":
+                    cur.execute("SELECT raw_text FROM job_descriptions WHERE id = %s", (doc_id,))
+                    row = cur.fetchone()
+                    if not row:
+                        return jsonify({"error": "Job description not found"}), 404
+                        
+                    raw_text = row[0]
+                    if not raw_text:
+                        return jsonify({"error": "Job description text is empty"}), 400
+                        
+                    # Embed (truncate to 3000 chars)
+                    embedding = model.encode(raw_text[:3000]).tolist()
+                    
+                    cur.execute("""
+                        UPDATE job_descriptions 
+                        SET embedding = %s
+                        WHERE id = %s
+                    """, (embedding, doc_id))
+
+        return jsonify({"success": True})
+        
+    except Exception as e:
+        print(f"Error parsing document: {e}")
+        return jsonify({"error": str(e)}), 500

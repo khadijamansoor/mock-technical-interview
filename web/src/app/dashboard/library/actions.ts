@@ -57,6 +57,24 @@ export async function uploadResume(formData: FormData) {
       [res.rows[0].id, userId]
     );
 
+    // Call grading service to parse and embed the resume synchronously
+    try {
+      const parseUrl = `${process.env.GRADING_SERVICE_URL || 'http://127.0.0.1:5000'}/parse-document`;
+      const parseRes = await fetch(parseUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "resume", id: res.rows[0].id }),
+      });
+      
+      if (!parseRes.ok) {
+        const errorData = await parseRes.json().catch(() => ({}));
+        throw new Error(`Parsing failed with status ${parseRes.status}: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (parseError: any) {
+      console.error("Error calling parse-document endpoint:", parseError);
+      throw new Error(`Resume uploaded successfully, but parsing failed: ${parseError.message}`);
+    }
+
   } catch (error) {
     console.error("Error uploading resume:", error);
     throw error;
@@ -130,6 +148,25 @@ export async function saveJobDescription(formData: FormData) {
       "UPDATE users SET active_jd_id = $1 WHERE id = $2",
       [res.rows[0].id, userId]
     );
+
+    // Call grading service to embed the JD synchronously
+    try {
+      const parseUrl = `${process.env.GRADING_SERVICE_URL || 'http://127.0.0.1:5000'}/parse-document`;
+      const parseRes = await fetch(parseUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "job_description", id: res.rows[0].id }),
+      });
+      
+      if (!parseRes.ok) {
+        const errorData = await parseRes.json().catch(() => ({}));
+        throw new Error(`Embedding failed with status ${parseRes.status}: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (parseError: any) {
+      console.error("Error calling parse-document endpoint for JD:", parseError);
+      throw new Error(`Job description saved successfully, but embedding failed: ${parseError.message}`);
+    }
+
   } catch (error) {
     console.error("Error saving JD:", error);
     throw error;
