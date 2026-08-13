@@ -18,7 +18,13 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-gray-950 text-white flex items-center justify-center p-4 py-12">
       <div className="max-w-4xl w-full bg-gray-900 border border-gray-800 rounded-xl shadow-2xl p-8">
-        <div className="mb-8 text-center">
+        <div className="mb-8 text-center relative">
+          <a 
+            href="/dashboard/library" 
+            className="absolute top-0 right-0 text-sm text-blue-400 hover:text-blue-300 transition-colors bg-gray-800 px-3 py-1.5 rounded-md border border-gray-700"
+          >
+            Library Context &rarr;
+          </a>
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
             Mock Interview
           </h1>
