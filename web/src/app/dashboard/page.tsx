@@ -348,20 +348,18 @@ export default async function DashboardHomePage() {
             </p>
             
             <div className="w-full relative group">
-              <form action={hasActiveContext ? "/interview/new" : "#"}>
-                <button 
-                  disabled={!hasActiveContext}
-                  className={`w-full py-3 px-4 rounded-lg flex items-center justify-center gap-2 font-semibold font-sans transition-all
-                    ${hasActiveContext 
-                      ? "bg-accent-secondary text-surface hover:bg-opacity-90 shadow-[0_0_15px_rgba(79,209,197,0.3)]" 
-                      : "bg-surface-hover text-text-muted cursor-not-allowed"
-                    }
-                  `}
-                >
-                  <Play size={18} fill={hasActiveContext ? "currentColor" : "none"} />
-                  Start Interview
-                </button>
-              </form>
+              <Link 
+                href={hasActiveContext ? "/dashboard/start" : "#"}
+                className={`w-full py-3 px-4 rounded-lg flex items-center justify-center gap-2 font-semibold font-sans transition-all
+                  ${hasActiveContext 
+                    ? "bg-accent-secondary text-surface hover:bg-opacity-90 shadow-[0_0_15px_rgba(79,209,197,0.3)]" 
+                    : "bg-surface-hover text-text-muted cursor-not-allowed pointer-events-none"
+                  }
+                `}
+              >
+                <Play size={18} fill={hasActiveContext ? "currentColor" : "none"} />
+                Start Interview
+              </Link>
               
               {!hasActiveContext && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-text-primary text-surface text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 font-sans">

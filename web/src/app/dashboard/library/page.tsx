@@ -10,7 +10,13 @@ import {
 } from "./actions";
 import { redirect } from "next/navigation";
 
-export default async function LibraryPage() {
+interface PageProps {
+  searchParams: Promise<{ message?: string }>;
+}
+
+export default async function LibraryPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const message = params.message;
   const client = await pool.connect();
   let user: any = null;
   let resumes: any[] = [];
@@ -41,6 +47,15 @@ export default async function LibraryPage() {
         <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
           Library Context
         </h1>
+
+        {message && (
+          <div className="mb-6 p-4 bg-accent-alert/10 border border-accent-alert/20 text-accent-alert text-sm rounded-lg font-sans flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 flex-shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+            </svg>
+            <span>{message}</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
