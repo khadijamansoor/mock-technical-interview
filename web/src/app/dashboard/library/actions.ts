@@ -29,6 +29,21 @@ export async function uploadResume(formData: FormData) {
     const fileName = `${Date.now()}-${file.name}`;
     const filePath = `${userId}/${fileName}`;
 
+    // Ensure the 'resumes' bucket exists
+    try {
+      const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
+      if (listError) throw listError;
+      if (!buckets?.some(b => b.id === "resumes")) {
+        const { error: createError } = await supabaseAdmin.storage.createBucket("resumes", {
+          public: false,
+        });
+        if (createError) throw createError;
+      }
+    } catch (bucketError) {
+      console.error("Error ensuring 'resumes' bucket exists:", bucketError);
+      throw new Error("Failed to initialize storage bucket. Please verify your Supabase keys.");
+    }
+
     // Upload to Supabase Storage
     const buffer = Buffer.from(await file.arrayBuffer());
     const { error: storageError } = await supabaseAdmin.storage
@@ -37,6 +52,7 @@ export async function uploadResume(formData: FormData) {
         contentType: file.type,
         upsert: false,
       });
+
 
     if (storageError) throw storageError;
 
