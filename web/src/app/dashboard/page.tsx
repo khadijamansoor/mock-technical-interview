@@ -78,7 +78,7 @@ export default async function DashboardHomePage() {
   }
 
   const firstName = user?.email?.split('@')[0] || "there";
-  const hasActiveContext = activeResume && activeJd;
+  const hasActiveContext = !!activeResume;
 
   // Radar calculations
   const scores = { correctness: 0, depth: 0, communication: 0, problem_solving: 0 };
@@ -363,7 +363,7 @@ export default async function DashboardHomePage() {
               
               {!hasActiveContext && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-text-primary text-surface text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 font-sans">
-                  Please set an active resume and job description first.
+                  Please set an active resume first.
                 </div>
               )}
             </div>

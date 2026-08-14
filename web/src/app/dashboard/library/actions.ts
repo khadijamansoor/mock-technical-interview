@@ -3,6 +3,7 @@
 import { pool } from "@/lib/db";
 import { supabaseAdmin, getResumeSignedUrl } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase-server";
 import { getOrCreateAppUser } from "@/lib/get-or-create-app-user";
@@ -94,6 +95,7 @@ export async function uploadResume(formData: FormData) {
     client.release();
     revalidatePath("/dashboard/library");
   }
+  redirect("/dashboard/library?success=Resume uploaded and parsed successfully.");
 }
 
 export async function deleteResume(resumeId: string, filePath: string) {
@@ -186,6 +188,7 @@ export async function saveJobDescription(formData: FormData) {
     client.release();
     revalidatePath("/dashboard/library");
   }
+  redirect("/dashboard/library?success=Job description saved and embedded successfully.");
 }
 
 export async function deleteJobDescription(jdId: string) {

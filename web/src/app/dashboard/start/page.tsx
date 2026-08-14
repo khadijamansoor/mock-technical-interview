@@ -18,15 +18,15 @@ export default async function StartInterviewPage() {
   let availableCombinations: { role_track: string; round_type: string | null }[] = [];
   
   try {
-    // Check if the user has active resume and active JD
+    // Check if the user has active resume
     const userRes = await client.query(
-      "SELECT active_resume_id, active_jd_id FROM users WHERE id = $1",
+      "SELECT active_resume_id FROM users WHERE id = $1",
       [userId]
     );
     const user = userRes.rows[0];
 
-    if (!user || !user.active_resume_id || !user.active_jd_id) {
-      redirect("/dashboard/library?message=Add a resume and job description before starting an interview");
+    if (!user || !user.active_resume_id) {
+      redirect("/dashboard/library?message=Add a resume before starting an interview");
     }
 
     const res = await client.query("SELECT DISTINCT role_track, round_type FROM questions");

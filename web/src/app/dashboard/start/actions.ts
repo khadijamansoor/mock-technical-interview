@@ -38,10 +38,10 @@ export async function createSession(formData: FormData) {
       [userId]
     );
     const activeResumeId = userRes.rows[0]?.active_resume_id;
-    const activeJdId = userRes.rows[0]?.active_jd_id;
+    const activeJdId = userRes.rows[0]?.active_jd_id || null; // JD is optional
 
-    if (!activeResumeId || !activeJdId) {
-      throw new Error("Add a resume and job description before starting an interview.");
+    if (!activeResumeId) {
+      throw new Error("Add a resume before starting an interview.");
     }
 
     // 3. Create session in 'greeting' state, including resume_id and job_description_id (migration 009)
