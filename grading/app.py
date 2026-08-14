@@ -266,8 +266,7 @@ TRANSCRIPT:
                 "overall_feedback": result["overall_feedback"]
             })
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+
 
 @app.post("/parse-document")
 def parse_document():
@@ -296,7 +295,7 @@ def parse_document():
                     
                     file_path, file_type = row
                     
-                    supabase_url = os.getenv("SUPABASE_URL")
+                    supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL") or os.getenv("SUPABASE_URL")
                     supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
                     
                     if not supabase_url or not supabase_key:
@@ -360,3 +359,6 @@ def parse_document():
     except Exception as e:
         print(f"Error parsing document: {e}")
         return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
