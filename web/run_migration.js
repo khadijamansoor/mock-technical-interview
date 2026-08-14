@@ -6,10 +6,10 @@ const run = async () => {
     connectionString: "postgresql://postgres.pewoovryaebkhrorpalf:%2BEe7%26cB%40MhywheH@52.74.252.201:6543/postgres"
   });
   await client.connect();
-  const sql = fs.readFileSync('../migrations/009_link_sessions_to_resume_jd.sql', 'utf8');
+  const sql = fs.readFileSync('../migrations/010_add_supabase_user_id.sql', 'utf8');
   await client.query(sql);
   await client.end();
-  console.log("Migration 009 applied successfully.");
+  console.log("Migration 010 applied successfully.");
 };
 
 run().catch(console.error);

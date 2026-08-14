@@ -1,8 +1,20 @@
 import { pool } from "@/lib/db";
 import Link from "next/link";
 import { Play } from "lucide-react";
+import { createClient } from "@/lib/supabase-server";
+import { getOrCreateAppUser } from "@/lib/get-or-create-app-user";
+import { redirect } from "next/navigation";
 
 export default async function DashboardHomePage() {
+  const supabase = await createClient();
+  const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+
+  if (!supabaseUser) {
+    redirect("/login");
+  }
+
+  const userId = await getOrCreateAppUser(supabaseUser);
+
   const client = await pool.connect();
   let user: any = null;
   let activeResume: any = null;
@@ -14,8 +26,8 @@ export default async function DashboardHomePage() {
   let recentSessions: any[] = [];
 
   try {
-    // Fetch dummy user
-    const userRes = await client.query("SELECT * FROM users LIMIT 1");
+    // Fetch the app user
+    const userRes = await client.query("SELECT * FROM users WHERE id = $1", [userId]);
     user = userRes.rows[0];
 
     if (user) {

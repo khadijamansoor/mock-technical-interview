@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Library, History, Settings, Menu, X } from "lucide-react";
+import { LayoutDashboard, Library, History, Settings, Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/library", label: "Resume & JD Library", icon: Library },
+  { href: "/dashboard/library", label: "Resume", icon: Library },
   { href: "/dashboard/history", label: "Session History", icon: History },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
 export function NavRail() {
@@ -55,6 +54,17 @@ export function NavRail() {
               </Link>
             );
           })}
+        </div>
+        <div className="p-4 border-t border-surface-hover mt-auto">
+          <button
+            onClick={() => {
+              import('@/app/login/actions').then(({ signOut }) => signOut());
+            }}
+            className="flex items-center gap-3 px-6 py-3 font-medium transition-colors text-text-muted hover:text-accent-alert hover:bg-surface-hover w-full text-left rounded-md"
+          >
+            <LogOut size={20} />
+            Sign Out
+          </button>
         </div>
       </nav>
       

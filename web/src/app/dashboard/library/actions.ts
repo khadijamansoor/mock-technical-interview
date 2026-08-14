@@ -4,18 +4,14 @@ import { pool } from "@/lib/db";
 import { supabaseAdmin, getResumeSignedUrl } from "@/lib/supabase-admin";
 import { revalidatePath } from "next/cache";
 
-async function getDummyUserId(client: any) {
-  const userRes = await client.query("SELECT id FROM users LIMIT 1");
-  let userId = userRes.rows[0]?.id;
+import { createClient } from "@/lib/supabase-server";
+import { getOrCreateAppUser } from "@/lib/get-or-create-app-user";
 
-  if (!userId) {
-    const newUsr = await client.query(
-      "INSERT INTO users (email, target_role) VALUES ($1, $2) RETURNING id",
-      ["test@example.com", "fullstack"]
-    );
-    userId = newUsr.rows[0].id;
-  }
-  return userId;
+async function getAuthUserId() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  return await getOrCreateAppUser(user);
 }
 
 export async function uploadResume(formData: FormData) {
@@ -29,7 +25,7 @@ export async function uploadResume(formData: FormData) {
 
   const client = await pool.connect();
   try {
-    const userId = await getDummyUserId(client);
+    const userId = await getAuthUserId();
     const fileName = `${Date.now()}-${file.name}`;
     const filePath = `${userId}/${fileName}`;
 
@@ -108,7 +104,7 @@ export async function deleteResume(resumeId: string, filePath: string) {
 export async function setActiveResume(resumeId: string) {
   const client = await pool.connect();
   try {
-    const userId = await getDummyUserId(client);
+    const userId = await getAuthUserId();
     await client.query(
       "UPDATE users SET active_resume_id = $1 WHERE id = $2",
       [resumeId, userId]
@@ -135,7 +131,7 @@ export async function saveJobDescription(formData: FormData) {
 
   const client = await pool.connect();
   try {
-    const userId = await getDummyUserId(client);
+    const userId = await getAuthUserId();
 
     const res = await client.query(
       `INSERT INTO job_descriptions (user_id, title, company, raw_text) 
@@ -192,7 +188,7 @@ export async function deleteJobDescription(jdId: string) {
 export async function setActiveJobDescription(jdId: string) {
   const client = await pool.connect();
   try {
-    const userId = await getDummyUserId(client);
+    const userId = await getAuthUserId();
     await client.query(
       "UPDATE users SET active_jd_id = $1 WHERE id = $2",
       [jdId, userId]
