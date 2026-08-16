@@ -79,7 +79,7 @@ async function handleGreeting(
 
   // Extract candidate name via lightweight Groq call
   const nameExtraction = await groq.chat.completions.create({
-    model: "llama-3.1-8b-instant",
+    model: "openai/gpt-oss-20b",
     messages: [{
       role: "user",
       content: `Extract just the person's first name from this text. If no name is found, use "there" as a fallback. Return JSON: {"name": "..."}\n\nText: "${answer}"`
@@ -149,7 +149,7 @@ Do NOT output JSON. Just output natural conversational text. Keep the total resp
 
         let fullResponse = "";
         const streamResponse = await groq.chat.completions.create({
-          model: "llama-3.1-8b-instant",
+          model: "openai/gpt-oss-20b",
           messages: [{ role: "user", content: ackPrompt }],
           temperature: 0.7,
           stream: true,
@@ -232,7 +232,7 @@ Output strictly in this JSON format:
 }`;
 
   const completion1 = await groq.chat.completions.create({
-    model: "llama-3.1-8b-instant",
+    model: "openai/gpt-oss-20b",
     messages: [{ role: "system", content: systemPrompt1 }, ...messages],
     temperature: 0.2,
     response_format: { type: "json_object" },
@@ -305,7 +305,7 @@ Do NOT output JSON. Just output the conversational feedback text.`;
 
         let fullFeedback = "";
         const streamResponse = await groq.chat.completions.create({
-          model: "llama-3.1-8b-instant",
+          model: "openai/gpt-oss-20b",
           messages: [{ role: "system", content: systemPrompt2 }, ...messages],
           temperature: 0.7,
           stream: true,
