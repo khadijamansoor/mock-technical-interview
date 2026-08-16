@@ -49,6 +49,7 @@ export default function ChatInterface({
   const [hasCameraConsent, setHasCameraConsent] = useState(false);
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
   const [callDuration, setCallDuration] = useState(0);
+  const [toast, setToast] = useState<{ id: string; message: string } | null>(null);
   
   const recognitionRef = useRef<any>(null);
   const finalTranscriptRef = useRef("");
@@ -87,6 +88,77 @@ export default function ChatInterface({
       }
     };
   }, [status]);
+
+  // Focus and Tab switch detection logic
+  useEffect(() => {
+    let isTabActive = true;
+    let awayTimeout: NodeJS.Timeout | null = null;
+
+    const handleAway = () => {
+      if (!isTabActive) return;
+      isTabActive = false;
+      
+      awayTimeout = setTimeout(() => {
+        setToast({
+          id: Math.random().toString(),
+          message: "Staying in the interview tab helps you get the most realistic practice."
+        });
+      }, 3000);
+    };
+
+    const handleReturn = () => {
+      if (isTabActive) return;
+      isTabActive = true;
+      
+      if (awayTimeout) {
+        clearTimeout(awayTimeout);
+        awayTimeout = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleAway();
+      } else {
+        handleReturn();
+      }
+    };
+
+    const handleBlur = () => {
+      handleAway();
+    };
+
+    const handleFocus = () => {
+      handleReturn();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("focus", handleFocus);
+
+    // Initial check in case it's hidden from the start
+    if (document.hidden) {
+      handleAway();
+    }
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", handleFocus);
+      if (awayTimeout) {
+        clearTimeout(awayTimeout);
+      }
+    };
+  }, []);
+
+  // Toast Auto-Dismiss
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   // Poll for scorecard when interview completes
   useEffect(() => {
@@ -426,6 +498,25 @@ export default function ChatInterface({
 
   return (
     <div className="flex flex-col h-full bg-black relative">
+      {toast && (
+        <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top duration-300">
+          <div className="bg-gray-900/95 border border-gray-700/50 backdrop-blur-md text-gray-200 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 max-w-md">
+            <svg className="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p className="text-sm font-medium">{toast.message}</p>
+            <button
+              onClick={() => setToast(null)}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-1 overflow-hidden">
         {/* Main Video Stage */}
         <div className="flex-1 relative bg-gray-900 flex flex-col items-center justify-center">
@@ -618,6 +709,15 @@ export default function ChatInterface({
                    }
                    setInput(e.target.value);
                    finalTranscriptRef.current = e.target.value;
+                }}
+                onPaste={(e) => {
+                  const pastedText = e.clipboardData.getData("text");
+                  if (pastedText && pastedText.length > 45) {
+                    setToast({
+                      id: Math.random().toString(),
+                      message: "Try typing your answer in your own words — that's what makes the practice realistic."
+                    });
+                  }
                 }}
                 onFocus={() => {
                   if (isAutoSubmitting) {
