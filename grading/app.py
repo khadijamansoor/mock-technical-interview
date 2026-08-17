@@ -298,7 +298,10 @@ TRANSCRIPT:
             )
             
             result_json = completion.choices[0].message.content
-            print(f"[Grade] Raw Groq response for session {session_id}: {result_json}")
+            try:
+                print(f"[Grade] Raw Groq response for session {session_id}: {result_json}")
+            except UnicodeEncodeError:
+                print(f"[Grade] Raw Groq response for session {session_id}: (Unicode content omitted for console printing)")
             result = json.loads(result_json)
             
             # Insert scorecard
