@@ -2,7 +2,6 @@ import { createSession } from "./actions";
 import { pool } from "@/lib/db";
 import TrackSelectionForm from "@/components/TrackSelectionForm";
 import { createClient } from "@/lib/supabase-server";
-import { getOrCreateAppUser } from "@/lib/get-or-create-app-user";
 import { redirect } from "next/navigation";
 
 export default async function StartInterviewPage() {
@@ -13,22 +12,10 @@ export default async function StartInterviewPage() {
     redirect("/login");
   }
 
-  const userId = await getOrCreateAppUser(supabaseUser);
   const client = await pool.connect();
   let availableCombinations: { role_track: string; round_type: string | null }[] = [];
   
   try {
-    // Check if the user has active resume
-    const userRes = await client.query(
-      "SELECT active_resume_id FROM users WHERE id = $1",
-      [userId]
-    );
-    const user = userRes.rows[0];
-
-    if (!user || !user.active_resume_id) {
-      redirect("/dashboard/library?message=Add a resume before starting an interview");
-    }
-
     const res = await client.query("SELECT DISTINCT role_track, round_type FROM questions");
     availableCombinations = res.rows;
   } finally {

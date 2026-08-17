@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import random
 from flask import Flask, request, jsonify
 import psycopg
 from dotenv import load_dotenv
@@ -124,7 +125,8 @@ def next_question():
       "target_gap": "optional area to dig into",
       "role_track": "frontend",
       "difficulty": "medium",
-      "asked_question_ids": ["uuid1", "uuid2"]
+      "asked_question_ids": ["uuid1", "uuid2"],
+      "session_id": "uuid"
     }
     """
     data = request.json
@@ -132,28 +134,76 @@ def next_question():
     role_track = data.get("role_track", "frontend")
     difficulty = data.get("difficulty", "medium")
     asked_question_ids = data.get("asked_question_ids", [])
-    
-    # If no specific gap is identified, fall back to a generic query string
-    search_text = target_gap if target_gap else f"{role_track} {difficulty} interview question"
+    session_id = data.get("session_id")
     
     start_time = time.time()
-    embedding = model.encode(search_text).tolist()
+    row = None
+    has_tailored_context = False
     
-    with psycopg.connect(DATABASE_URL) as conn:
-        with conn.cursor() as cur:
-            # We want to find a question that matches role, difficulty, and hasn't been asked, ordered by cosine distance
-            query = """
-                SELECT id, text, role_track, topic, difficulty, ideal_answer_points
-                FROM questions
-                WHERE role_track = %s AND difficulty = %s AND id != ALL(%s)
-                ORDER BY embedding <=> %s::vector
-                LIMIT 1;
-            """
-            cur.execute(query, (role_track, difficulty, asked_question_ids, embedding))
-            row = cur.fetchone()
+    if session_id:
+        try:
+            with psycopg.connect(DATABASE_URL) as conn:
+                with conn.cursor() as cur:
+                    # Check if session has both resume_id and job_description_id, and they have non-null embeddings
+                    cur.execute("""
+                        SELECT 
+                            s.resume_id, 
+                            s.job_description_id,
+                            r.embedding IS NOT NULL as has_r,
+                            jd.embedding IS NOT NULL as has_jd
+                        FROM interview_sessions s
+                        LEFT JOIN resumes r ON s.resume_id = r.id
+                        LEFT JOIN job_descriptions jd ON s.job_description_id = jd.id
+                        WHERE s.id = %s
+                    """, (session_id,))
+                    s_row = cur.fetchone()
+                    if s_row and s_row[0] and s_row[1] and s_row[2] and s_row[3]:
+                        has_tailored_context = True
+                        
+                    if has_tailored_context:
+                        # Select top 10 most relevant questions by average cosine similarity
+                        # (since <=> is cosine distance, smaller average distance = higher similarity)
+                        query = """
+                            SELECT q.id, q.text, q.role_track, q.topic, q.difficulty, q.ideal_answer_points
+                            FROM questions q
+                            JOIN interview_sessions s ON s.id = %s
+                            JOIN resumes r ON s.resume_id = r.id
+                            JOIN job_descriptions jd ON s.job_description_id = jd.id
+                            WHERE q.role_track = %s AND q.difficulty = %s AND q.id != ALL(%s)
+                              AND r.embedding IS NOT NULL AND jd.embedding IS NOT NULL
+                            ORDER BY ( (q.embedding <=> r.embedding) + (q.embedding <=> jd.embedding) ) / 2.0 ASC
+                            LIMIT 10;
+                        """
+                        cur.execute(query, (session_id, role_track, difficulty, asked_question_ids))
+                        rows = cur.fetchall()
+                        if rows:
+                            row = random.choice(rows)
+                            print(f"Tailored question selection selected from {len(rows)} candidate questions.")
+        except Exception as e:
+            print(f"Error executing tailored question selection: {e}")
+            
+    if not row:
+        # Fall back to existing selection logic
+        search_text = target_gap if target_gap else f"{role_track} {difficulty} interview question"
+        embedding = model.encode(search_text).tolist()
+        
+        try:
+            with psycopg.connect(DATABASE_URL) as conn:
+                with conn.cursor() as cur:
+                    query = """
+                        SELECT id, text, role_track, topic, difficulty, ideal_answer_points
+                        FROM questions
+                        WHERE role_track = %s AND difficulty = %s AND id != ALL(%s)
+                        ORDER BY embedding <=> %s::vector
+                        LIMIT 1;
+                    """
+                    cur.execute(query, (role_track, difficulty, asked_question_ids, embedding))
+                    row = cur.fetchone()
+        except Exception as e:
+            print(f"Error executing fallback question selection: {e}")
             
     elapsed_time = time.time() - start_time
-    print(f"Vector search took {elapsed_time:.3f}s")
+    print(f"Question selection took {elapsed_time:.3f}s (tailored: {has_tailored_context})")
     
     if not row:
         return jsonify({"error": "No more questions available"}), 404

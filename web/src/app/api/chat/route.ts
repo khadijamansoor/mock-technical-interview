@@ -20,9 +20,20 @@ export async function POST(req: NextRequest) {
     const client = await pool.connect();
 
     try {
-      // Fetch session info
+      // Fetch session info along with resume and JD raw text
       const sessionRes = await client.query(
-        "SELECT role_track, status, candidate_name FROM interview_sessions WHERE id = $1",
+        `SELECT 
+           s.role_track, 
+           s.status, 
+           s.candidate_name,
+           s.resume_id,
+           s.job_description_id,
+           r.raw_text as resume_text,
+           jd.raw_text as jd_text
+         FROM interview_sessions s
+         LEFT JOIN resumes r ON s.resume_id = r.id
+         LEFT JOIN job_descriptions jd ON s.job_description_id = jd.id
+         WHERE s.id = $1`,
         [sessionId]
       );
       const session = sessionRes.rows[0];
@@ -55,7 +66,18 @@ export async function POST(req: NextRequest) {
       }
 
       // ─── INTERVIEW STATE (in_progress) ────────────────────────────
-      return await handleInterview(client, sessionId, answer, currentQuestionId, nextSeq, roleTrack, candidateName);
+      return await handleInterview(
+        client,
+        sessionId,
+        answer,
+        currentQuestionId,
+        nextSeq,
+        roleTrack,
+        candidateName,
+        session.resume_text,
+        session.jd_text,
+        !!(session.resume_id && session.job_description_id)
+      );
 
     } catch (dbError) {
       client.release();
@@ -113,6 +135,7 @@ async function handleGreeting(
         role_track: roleTrack,
         difficulty: "medium",
         asked_question_ids: [],
+        session_id: sessionId,
       }),
     });
 
@@ -197,7 +220,10 @@ async function handleInterview(
   currentQuestionId: string | null,
   nextSeq: number,
   roleTrack: string,
-  candidateName: string
+  candidateName: string,
+  resumeText: string | null,
+  jdText: string | null,
+  hasTailoredContext: boolean
 ) {
   const encoder = new TextEncoder();
   const nameClause = candidateName ? `The candidate's name is ${candidateName}. You may address them by name occasionally where natural, but not in every message.` : "";
@@ -231,9 +257,29 @@ Output strictly in this JSON format:
   "score": { "correctness": 1-5, "depth": 1-5, "communication": 1-5 }
 }`;
 
+  const requestMessages: any[] = [{ role: "system", content: systemPrompt1 }];
+
+  if (hasTailoredContext) {
+    const contextPrompt = `Here is the candidate's resume and the job description they are applying for.
+Use this context to tailor your evaluation and subsequent questions or probes (e.g. referencing specific projects or technologies mentioned).
+
+Candidate's Resume:
+"""
+${resumeText ? resumeText.slice(0, 4000) : "No resume text extracted."}
+"""
+
+Job Description:
+"""
+${jdText ? jdText.slice(0, 4000) : "No job description text provided."}
+"""`;
+    requestMessages.push({ role: "system", content: contextPrompt });
+  }
+
+  requestMessages.push(...messages);
+
   const completion1 = await groq.chat.completions.create({
     model: "openai/gpt-oss-20b",
-    messages: [{ role: "system", content: systemPrompt1 }, ...messages],
+    messages: requestMessages,
     temperature: 0.2,
     response_format: { type: "json_object" },
   });
@@ -260,6 +306,7 @@ Output strictly in this JSON format:
           role_track: roleTrack,
           difficulty: "medium",
           asked_question_ids: askedIds,
+          session_id: sessionId,
         }),
       });
 
