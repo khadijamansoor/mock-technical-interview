@@ -6,6 +6,9 @@ import { getOrCreateAppUser } from "@/lib/get-or-create-app-user";
 import { redirect } from "next/navigation";
 
 export default async function DashboardHomePage() {
+  const limit = process.env.MAX_DAILY_SESSIONS ? parseInt(process.env.MAX_DAILY_SESSIONS, 10) : 3;
+  const maxDailySessions = isNaN(limit) ? 3 : limit;
+
   const supabase = await createClient();
   const { data: { user: supabaseUser } } = await supabase.auth.getUser();
 
@@ -21,6 +24,7 @@ export default async function DashboardHomePage() {
   let activeJd: any = null;
   
   let completedCount = 0;
+  let dailyCount = 0;
   let lastSessionDate: Date | null = null;
   let last5Completed: any[] = [];
   let recentSessions: any[] = [];
@@ -49,6 +53,12 @@ export default async function DashboardHomePage() {
 
       const maxRes = await client.query("SELECT MAX(ended_at) as last_session FROM interview_sessions WHERE user_id = $1 AND status = 'completed'", [user.id]);
       lastSessionDate = maxRes.rows[0].last_session;
+
+      const dailyRes = await client.query(
+        "SELECT COUNT(*) FROM interview_sessions WHERE user_id = $1 AND started_at >= NOW() - INTERVAL '24 hours'",
+        [user.id]
+      );
+      dailyCount = parseInt(dailyRes.rows[0].count, 10);
 
       // Radar (last 5 completed)
       const radarRes = await client.query(`
@@ -343,9 +353,17 @@ export default async function DashboardHomePage() {
           {/* Start Interview Action */}
           <div className="bg-surface border border-surface-hover rounded-xl p-6 flex flex-col items-center text-center">
             <h2 className="text-lg font-heading font-semibold text-text-primary mb-2">Ready to practice?</h2>
-            <p className="text-sm text-text-muted font-sans mb-6">
+            <p className="text-sm text-text-muted font-sans mb-4">
               Start a new mock interview session using your active context.
             </p>
+
+            <div className={`mb-6 px-3 py-1 rounded-full text-xs font-medium font-sans ${
+              dailyCount >= maxDailySessions 
+                ? "bg-accent-alert/15 text-accent-alert" 
+                : "bg-surface-hover text-text-muted"
+            }`}>
+              {dailyCount} of {maxDailySessions} daily sessions used
+            </div>
             
             <div className="w-full relative group">
               <Link 

@@ -1,4 +1,3 @@
-import { createSession } from "./actions";
 import { pool } from "@/lib/db";
 import TrackSelectionForm from "@/components/TrackSelectionForm";
 import { createClient } from "@/lib/supabase-server";
@@ -38,9 +37,7 @@ export default async function StartInterviewPage() {
           <p className="text-gray-400 mt-2 font-sans">AI-powered technical interviewing</p>
         </div>
 
-        <form action={createSession} className="space-y-6 mt-8">
-          <TrackSelectionForm availableCombinations={availableCombinations} />
-        </form>
+        <TrackSelectionForm availableCombinations={availableCombinations} />
       </div>
     </main>
   );

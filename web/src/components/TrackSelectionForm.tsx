@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { tracks, Track } from "@/lib/tracks";
+import { createSession } from "@/app/dashboard/start/actions";
 
 type Props = {
   availableCombinations: { role_track: string; round_type: string | null }[];
@@ -10,6 +12,26 @@ type Props = {
 export default function TrackSelectionForm({ availableCombinations }: Props) {
   const [selectedTrackId, setSelectedTrackId] = useState<string>("");
   const [selectedRoundType, setSelectedRoundType] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (isLoading) return;
+    setIsLoading(true);
+    setError(null);
+    const formData = new FormData(e.currentTarget);
+    try {
+      const res = await createSession(formData);
+      if (res?.error) {
+        setError(res.error);
+      }
+    } catch (err: any) {
+      setError(err?.message || "An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const isTrackAvailable = (track: Track) => {
     return availableCombinations.some(c => c.role_track === track.id);
@@ -41,7 +63,7 @@ export default function TrackSelectionForm({ availableCombinations }: Props) {
   };
 
   return (
-    <div className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {/* Hidden inputs to pass state to server action */}
       <input type="hidden" name="role_track" value={selectedTrackId} />
       <input type="hidden" name="round_type" value={selectedRoundType} />
@@ -151,13 +173,20 @@ export default function TrackSelectionForm({ availableCombinations }: Props) {
         </div>
       </div>
 
+      {error && (
+        <div className="p-4 bg-accent-alert/10 border border-accent-alert/20 text-accent-alert text-sm rounded-lg font-sans">
+          {error}
+        </div>
+      )}
+
       <button 
         type="submit" 
-        disabled={!selectedTrackId || (!!selectedTrack?.roundTypes && !selectedRoundType)}
-        className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition-all active:scale-95"
+        disabled={isLoading || !selectedTrackId || (!!selectedTrack?.roundTypes && !selectedRoundType)}
+        className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition-all active:scale-95 flex items-center justify-center gap-2"
       >
-        Start Interview
+        {isLoading && <Loader2 className="animate-spin" size={18} />}
+        {isLoading ? "Starting Interview..." : "Start Interview"}
       </button>
-    </div>
+    </form>
   );
 }
